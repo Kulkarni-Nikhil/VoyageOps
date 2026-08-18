@@ -87,6 +87,10 @@ public class TripMemberService {
         return requireMember(actorId, getTrip(tripId));
     }
 
+    public User requireEditor(UUID actorId, Long tripId) {
+        return requireEditor(actorId, getTrip(tripId));
+    }
+
     public User requireActor(UUID actorId) {
         if (actorId == null) {
             throw new UnauthorizedException("Authentication required: provide an X-User-Id header");
@@ -109,6 +113,23 @@ public class TripMemberService {
             throw new AccessDeniedException("You are not a member of this trip");
         }
         return actor;
+    }
+
+    private User requireEditor(UUID actorId, Trip trip) {
+        User actor = requireActor(actorId);
+        if (!isEditor(actor, trip)) {
+            throw new AccessDeniedException("Only trip editors can perform this action");
+        }
+        return actor;
+    }
+
+    private boolean isEditor(User actor, Trip trip) {
+        if (isOwner(actor, trip)) {
+            return true;
+        }
+        return tripMemberRepository.findByTripAndUser(trip, actor)
+                .map(member -> member.getRole() == MemberRole.EDITOR)
+                .orElse(false);
     }
 
     private boolean isMember(User actor, Trip trip) {
