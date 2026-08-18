@@ -5,6 +5,7 @@ import com.voyageops.app.common.exception.ResourceNotFoundException;
 import com.voyageops.app.common.web.PageResponse;
 import com.voyageops.app.trip.domain.Trip;
 import com.voyageops.app.trip.domain.TripStatus;
+import com.voyageops.app.trip.domain.TripStatusPolicy;
 import com.voyageops.app.trip.infrastructure.TripRepository;
 import com.voyageops.app.trip.web.dto.CreateTripRequest;
 import com.voyageops.app.trip.web.dto.TripResponse;
@@ -14,6 +15,7 @@ import com.voyageops.app.user.infrastructure.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ public class TripService {
 
     private final TripRepository tripRepository;
     private final UserRepository userRepository;
+    private final TripStatusPolicy statusPolicy;
 
     @Transactional(readOnly = true)
     public PageResponse<TripResponse> getAllTrips(Pageable pageable) {
@@ -62,12 +65,20 @@ public class TripService {
         Trip trip = getTrip(id);
         validateDateRange(request.getStartDate(), request.getEndDate());
 
+        if (statusPolicy.isTerminal(trip.getStatus())) {
+            throw new BusinessException(HttpStatus.CONFLICT,
+                    "Completed or cancelled trips cannot be modified");
+        }
+        if (request.getStatus() != null) {
+            statusPolicy.validateTransition(trip.getStatus(), request.getStatus());
+            trip.setStatus(request.getStatus());
+        }
+
         trip.setName(request.getName());
         trip.setDescription(request.getDescription());
         trip.setBudget(request.getBudget());
         trip.setStartDate(request.getStartDate());
         trip.setEndDate(request.getEndDate());
-        trip.setStatus(request.getStatus());
 
         return toResponse(tripRepository.save(trip));
     }
