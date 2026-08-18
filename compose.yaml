@@ -1,4 +1,28 @@
 services:
+  app:
+    build: ./app
+    container_name: voyageops-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/voyageops
+      - DB_USERNAME=voyageops
+      - DB_PASSWORD=voyageops
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - INTEGRATION_OPENTRIPMAP_API_KEY=${INTEGRATION_OPENTRIPMAP_API_KEY:-}
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
   postgres:
     image: postgres:17-alpine
     container_name: voyageops-postgres
