@@ -10,7 +10,10 @@ import com.voyageops.app.trip.infrastructure.TripRepository;
 import com.voyageops.app.trip.web.dto.CreateTripRequest;
 import com.voyageops.app.trip.web.dto.TripResponse;
 import com.voyageops.app.trip.web.dto.UpdateTripRequest;
+import com.voyageops.app.user.domain.MemberRole;
+import com.voyageops.app.user.domain.TripMember;
 import com.voyageops.app.user.domain.User;
+import com.voyageops.app.user.infrastructure.TripMemberRepository;
 import com.voyageops.app.user.infrastructure.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -28,6 +32,7 @@ public class TripService {
     private final TripRepository tripRepository;
     private final UserRepository userRepository;
     private final TripStatusPolicy statusPolicy;
+    private final TripMemberRepository tripMemberRepository;
 
     @Transactional(readOnly = true)
     public PageResponse<TripResponse> getAllTrips(Pageable pageable) {
@@ -57,7 +62,17 @@ public class TripService {
                 .owner(owner)
                 .build();
 
-        return toResponse(tripRepository.save(trip));
+        Trip saved = tripRepository.save(trip);
+        if (owner != null) {
+            TripMember member = TripMember.builder()
+                    .trip(saved)
+                    .user(owner)
+                    .role(MemberRole.OWNER)
+                    .joinedAt(Instant.now())
+                    .build();
+            tripMemberRepository.save(member);
+        }
+        return toResponse(saved);
     }
 
     @Transactional

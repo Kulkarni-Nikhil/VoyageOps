@@ -9,7 +9,10 @@ import com.voyageops.app.trip.infrastructure.TripRepository;
 import com.voyageops.app.trip.web.dto.CreateTripRequest;
 import com.voyageops.app.trip.web.dto.TripResponse;
 import com.voyageops.app.trip.web.dto.UpdateTripRequest;
+import com.voyageops.app.user.domain.MemberRole;
+import com.voyageops.app.user.domain.TripMember;
 import com.voyageops.app.user.domain.User;
+import com.voyageops.app.user.infrastructure.TripMemberRepository;
 import com.voyageops.app.user.infrastructure.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,12 +40,15 @@ class TripServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private TripMemberRepository tripMemberRepository;
+
     private final TripStatusPolicy statusPolicy = new TripStatusPolicy();
     private TripService tripService;
 
     @BeforeEach
     void setUp() {
-        tripService = new TripService(tripRepository, userRepository, statusPolicy);
+        tripService = new TripService(tripRepository, userRepository, statusPolicy, tripMemberRepository);
     }
 
     // --- create ---
@@ -86,6 +92,7 @@ class TripServiceTest {
 
         assertThat(response.getOwnerId()).isEqualTo(ownerId);
         verify(userRepository).findById(ownerId);
+        verify(tripMemberRepository).save(any(TripMember.class));
     }
 
     @Test
