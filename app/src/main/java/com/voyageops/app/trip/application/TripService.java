@@ -79,7 +79,7 @@ public class TripService {
         return toResponse(saved);
     }
 
-    @CacheEvict(cacheNames = CacheConfig.CACHE_TRIP, key = "#id")
+    @CacheEvict(cacheNames = {CacheConfig.CACHE_TRIP, CacheConfig.CACHE_WEATHER, CacheConfig.CACHE_PLACES}, key = "#id")
     @Transactional
     public TripResponse updateTrip(Long id, UpdateTripRequest request) {
         Trip trip = getTrip(id);
@@ -103,7 +103,7 @@ public class TripService {
         return toResponse(tripRepository.save(trip));
     }
 
-    @CacheEvict(cacheNames = CacheConfig.CACHE_TRIP, key = "#id")
+    @CacheEvict(cacheNames = {CacheConfig.CACHE_TRIP, CacheConfig.CACHE_WEATHER, CacheConfig.CACHE_PLACES}, key = "#id")
     @Transactional
     public TripResponse deleteTrip(Long id) {
         Trip trip = getTrip(id);

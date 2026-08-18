@@ -28,6 +28,15 @@ spring:
   jackson:
     default-property-inclusion: non_null
 
+  http:
+    client:
+      connect-timeout: 3s
+      read-timeout: 5s
+
+integration:
+  opentripmap:
+    api-key: ${INTEGRATION_OPENTRIPMAP_API_KEY:}
+
 server:
   port: ${SERVER_PORT:8080}
 

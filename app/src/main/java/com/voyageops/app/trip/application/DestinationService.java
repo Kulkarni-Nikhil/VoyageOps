@@ -38,7 +38,7 @@ public class DestinationService {
         return toResponse(getDestination(id));
     }
 
-    @CacheEvict(cacheNames = CacheConfig.CACHE_DESTINATIONS, key = "#tripId")
+    @CacheEvict(cacheNames = {CacheConfig.CACHE_DESTINATIONS, CacheConfig.CACHE_WEATHER, CacheConfig.CACHE_PLACES}, key = "#tripId")
     @Transactional
     public DestinationResponse addDestination(Long tripId, DestinationRequest request) {
         Trip trip = tripRepository.findById(tripId)
@@ -57,7 +57,7 @@ public class DestinationService {
         return toResponse(destinationRepository.save(destination));
     }
 
-    @CacheEvict(cacheNames = CacheConfig.CACHE_DESTINATIONS, key = "#result.tripId")
+    @CacheEvict(cacheNames = {CacheConfig.CACHE_DESTINATIONS, CacheConfig.CACHE_WEATHER, CacheConfig.CACHE_PLACES}, key = "#result.tripId")
     @Transactional
     public DestinationResponse updateDestination(Long id, DestinationRequest request) {
         Destination destination = getDestination(id);
@@ -70,7 +70,7 @@ public class DestinationService {
         return toResponse(destinationRepository.save(destination));
     }
 
-    @CacheEvict(cacheNames = CacheConfig.CACHE_DESTINATIONS, key = "#result.tripId")
+    @CacheEvict(cacheNames = {CacheConfig.CACHE_DESTINATIONS, CacheConfig.CACHE_WEATHER, CacheConfig.CACHE_PLACES}, key = "#result.tripId")
     @Transactional
     public DestinationResponse deleteDestination(Long id) {
         Destination destination = getDestination(id);

@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.LinkedHashMap;
@@ -49,6 +50,13 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         return ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST, "Invalid value for path variable: " + ex.getName());
+    }
+
+    @ExceptionHandler(RestClientException.class)
+    public ProblemDetail handleUpstreamFailure(RestClientException ex) {
+        log.warn("Upstream service failure: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_GATEWAY, "An external service used to fulfil this request is unavailable");
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

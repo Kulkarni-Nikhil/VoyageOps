@@ -30,6 +30,8 @@ public class CacheConfig {
     public static final String CACHE_ACTIVITIES = "trip-activities";
     public static final String CACHE_EXPENSE_SUMMARY = "expense-summary";
     public static final String CACHE_USERS = "users";
+    public static final String CACHE_WEATHER = "weather";
+    public static final String CACHE_PLACES = "places";
 
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -39,6 +41,8 @@ public class CacheConfig {
         configurations.put(CACHE_ACTIVITIES, cacheConfig(Duration.ofHours(1)));
         configurations.put(CACHE_EXPENSE_SUMMARY, cacheConfig(Duration.ofMinutes(5)));
         configurations.put(CACHE_USERS, cacheConfig(Duration.ofMinutes(30)));
+        configurations.put(CACHE_WEATHER, cacheConfig(Duration.ofHours(3)));
+        configurations.put(CACHE_PLACES, cacheConfig(Duration.ofDays(1)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(cacheConfig(Duration.ofMinutes(10)))

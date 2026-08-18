@@ -10,4 +10,6 @@ import java.util.List;
 @Repository
 public interface TripRepository extends JpaRepository<Trip, Long> {
     List<Trip> findByStartDate(LocalDate startDate);
+
+    List<Trip> findByStartDateBetween(LocalDate from, LocalDate to);
 }
