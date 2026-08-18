@@ -2,12 +2,15 @@ package com.voyageops.app.user.application;
 
 import com.voyageops.app.common.exception.BusinessException;
 import com.voyageops.app.common.exception.ResourceNotFoundException;
+import com.voyageops.app.config.CacheConfig;
 import com.voyageops.app.user.domain.User;
 import com.voyageops.app.user.infrastructure.UserRepository;
 import com.voyageops.app.user.web.dto.CreateUserRequest;
 import com.voyageops.app.user.web.dto.UpdateUserRequest;
 import com.voyageops.app.user.web.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,13 +19,11 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class
-
-
-UserService {
+public class UserService {
 
     private final UserRepository userRepository;
 
+    @Cacheable(cacheNames = CacheConfig.CACHE_USERS, key = "#id")
     @Transactional(readOnly = true)
     public UserResponse getUserById(UUID id) {
         return toResponse(getUser(id));
@@ -42,6 +43,7 @@ UserService {
         return toResponse(userRepository.save(user));
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CACHE_USERS, key = "#id")
     @Transactional
     public UserResponse updateUser(UUID id, UpdateUserRequest request) {
         User user = getUser(id);

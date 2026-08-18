@@ -46,8 +46,8 @@ public class ActivityController {
     }
 
     @DeleteMapping("/activities/{id}")
-    public void deleteActivity(@PathVariable Long id) {
+    public ActivityResponse deleteActivity(@PathVariable Long id) {
         log.info("Deleting activity {}", id);
-        activityService.deleteActivity(id);
+        return activityService.deleteActivity(id);
     }
 }

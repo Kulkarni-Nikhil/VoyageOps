@@ -3,6 +3,7 @@ package com.voyageops.app.trip.application;
 import com.voyageops.app.common.exception.BusinessException;
 import com.voyageops.app.common.exception.ResourceNotFoundException;
 import com.voyageops.app.common.web.PageResponse;
+import com.voyageops.app.config.CacheConfig;
 import com.voyageops.app.trip.domain.Trip;
 import com.voyageops.app.trip.domain.TripStatus;
 import com.voyageops.app.trip.domain.TripStatusPolicy;
@@ -16,6 +17,8 @@ import com.voyageops.app.user.domain.User;
 import com.voyageops.app.user.infrastructure.TripMemberRepository;
 import com.voyageops.app.user.infrastructure.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -41,6 +44,7 @@ public class TripService {
         return PageResponse.from(page);
     }
 
+    @Cacheable(cacheNames = CacheConfig.CACHE_TRIP, key = "#id")
     @Transactional(readOnly = true)
     public TripResponse getTripById(Long id) {
         return toResponse(getTrip(id));
@@ -75,6 +79,7 @@ public class TripService {
         return toResponse(saved);
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CACHE_TRIP, key = "#id")
     @Transactional
     public TripResponse updateTrip(Long id, UpdateTripRequest request) {
         Trip trip = getTrip(id);
@@ -98,6 +103,7 @@ public class TripService {
         return toResponse(tripRepository.save(trip));
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CACHE_TRIP, key = "#id")
     @Transactional
     public TripResponse deleteTrip(Long id) {
         Trip trip = getTrip(id);

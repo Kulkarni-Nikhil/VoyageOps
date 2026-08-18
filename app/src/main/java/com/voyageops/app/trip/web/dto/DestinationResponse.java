@@ -11,6 +11,7 @@ import java.time.LocalDate;
 @Builder
 public class DestinationResponse {
     private Long id;
+    private Long tripId;
     private String city;
     private String country;
     private LocalDate arrival;

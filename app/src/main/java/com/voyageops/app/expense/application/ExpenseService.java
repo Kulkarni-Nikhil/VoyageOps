@@ -2,6 +2,7 @@ package com.voyageops.app.expense.application;
 
 import com.voyageops.app.common.exception.ResourceNotFoundException;
 import com.voyageops.app.common.web.PageResponse;
+import com.voyageops.app.config.CacheConfig;
 import com.voyageops.app.expense.domain.Expense;
 import com.voyageops.app.expense.domain.ExpenseCategory;
 import com.voyageops.app.expense.domain.ExpensePolicy;
@@ -15,6 +16,8 @@ import com.voyageops.app.trip.infrastructure.TripRepository;
 import com.voyageops.app.user.application.TripMemberService;
 import com.voyageops.app.user.domain.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -35,6 +38,7 @@ public class ExpenseService {
     private final ExpensePolicy expensePolicy;
     private final TripMemberService tripMemberService;
 
+    @CacheEvict(cacheNames = CacheConfig.CACHE_EXPENSE_SUMMARY, key = "#tripId")
     @Transactional
     public ExpenseResponse addExpense(Long tripId, UUID actorId, CreateExpenseRequest request) {
         User paidBy = tripMemberService.requireEditor(actorId, tripId);
@@ -67,6 +71,7 @@ public class ExpenseService {
         return toResponse(getExpense(tripId, expenseId));
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CACHE_EXPENSE_SUMMARY, key = "#tripId")
     @Transactional
     public ExpenseResponse updateExpense(Long tripId, Long expenseId, UUID actorId,
                                          UpdateExpenseRequest request) {
@@ -90,6 +95,7 @@ public class ExpenseService {
         return toResponse(expenseRepository.save(expense));
     }
 
+    @CacheEvict(cacheNames = CacheConfig.CACHE_EXPENSE_SUMMARY, key = "#tripId")
     @Transactional
     public void deleteExpense(Long tripId, Long expenseId, UUID actorId) {
         tripMemberService.requireEditor(actorId, tripId);
@@ -97,6 +103,7 @@ public class ExpenseService {
         expenseRepository.delete(expense);
     }
 
+    @Cacheable(cacheNames = CacheConfig.CACHE_EXPENSE_SUMMARY, key = "#tripId")
     @Transactional(readOnly = true)
     public BudgetSummaryResponse getBudgetSummary(Long tripId, UUID actorId) {
         Trip trip = getTrip(tripId);

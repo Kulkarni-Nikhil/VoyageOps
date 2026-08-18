@@ -13,6 +13,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class ActivityResponse {
     private Long id;
+    private Long tripId;
     private String title;
     private String description;
     private BigDecimal cost;
