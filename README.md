@@ -1,200 +1,293 @@
 # VoyageOps
 
-Backend-first travel planning platform built as a resume project. Users manage
-trips collaboratively, track budgets and expenses, and pull live weather and
-points-of-interest for their destinations — served with Redis caching, method-level
-resilience, scheduled jobs, and containerized infrastructure.
+VoyageOps is a backend-first travel planning platform built with Java and Spring Boot. It provides REST APIs for managing trips, destinations, activities, collaborative travel planning, expenses, and budgets, with an agentic AI assistant layered on top of the backend.
 
-## Tech Stack
+The project focuses on backend engineering concepts such as modular architecture, relational data modeling, caching, authorization-aware service operations, external information retrieval, and AI tool orchestration.
 
-| Concern            | Choice                                                                 |
-| ------------------ | ---------------------------------------------------------------------- |
-| Language           | Java 25                                                                 |
-| Framework          | Spring Boot 4.1 (Spring Framework 7)                                    |
-| Persistence        | Spring Data JPA / Hibernate, PostgreSQL 17, Flyway migrations           |
-| Cache              | Redis 7 (JSON serialization with per-cache TTLs)                        |
-| Resilience         | Spring Resilience (`@Retryable`, `@ConcurrencyLimit`)                   |
-| HTTP client        | `RestClient` (Spring Boot `restclient` starter)                         |
-| API docs           | Springdoc OpenAPI 3 / Swagger UI                                        |
-| Build / run        | Maven, Docker Compose                                                   |
-| Tests              | JUnit 5, Mockito, AssertJ                                               |
+## Features
+
+### Trip Planning
+- Create and manage trips
+- Configure trip dates, status, description, and budget
+- Manage multiple destinations
+- Plan activities within a trip
+
+### Collaborative Trips
+- Trip membership
+- Role-based access to trip operations
+- Shared trip planning between members
+
+### Expense & Budget Management
+- Add, update, and delete trip expenses
+- Categorize expenses
+- Track total spending
+- Calculate remaining budget
+- Calculate budget utilization percentage
+- View spending by expense category
+
+### Redis Caching
+- Cache frequently requested trip-related data
+- Cache expense summaries
+- Invalidate cached data when relevant data changes
+- Reduce unnecessary database queries
+
+### Agentic AI Travel Assistant
+VoyageOps includes an AI travel assistant built using Spring AI and Groq.
+
+The assistant can:
+
+- Understand natural-language travel questions
+- Maintain conversation context
+- Access VoyageOps trip data through application tools
+- Retrieve trip details
+- Retrieve planned activities
+- Retrieve budget information
+- Perform web research for current travel information
+- Combine application data and web-search results into a contextual response
+
+### AI Tool Calling
+
+The AI assistant can invoke backend capabilities when required instead of relying entirely on model-generated knowledge.
+
+Example:
+
+```text
+User
+ │
+ ▼
+AI Travel Assistant
+ │
+ ├── get_trip_details
+ │
+ ├── get_trip_activities
+ │
+ ├── get_budget_status
+ │
+ └── web_search
+       │
+       ▼
+   Live Web Information
+```
+
+This allows the assistant to distinguish between information stored inside VoyageOps and information that needs to be retrieved from the web.
 
 ## Architecture
 
-- **Package-by-feature**: each feature (`trip`, `user`, `expense`, `weather`,
-  `places`) owns its `domain / application / infrastructure / web` layers.
-- **Hexagonal integrations**: external providers sit behind ports
-  (`Geocoder`, `WeatherProvider`, `PlacesProvider`) with adapter
-  implementations (Open-Meteo, OpenTripMap), so providers can be swapped.
-- **Caching with auth safety**: cached readers are deliberately free of
-  authorization logic and are only reachable through facades that enforce trip
-  membership *before* any cache lookup — a cache hit can never bypass access
-  control.
-- **Resilience**: every adapter method is retried on transient failures
-  (4xx excluded) and concurrency-limited, backed by short HTTP client timeouts.
-- **Forecast horizon**: Open-Meteo only forecasts ~15 days ahead; requests for
-  farther-out trips return the available days plus a `notice` describing the
-  limitation instead of failing.
+```text
+Client
+  │
+  ▼
+REST Controllers
+  │
+  ▼
+Application Services
+  │
+  ├───────────────┐
+  ▼               ▼
+PostgreSQL       Redis
+  │
+  ▼
+Trip / Destination / Activity / Expense
+                 │
+                 ▼
+          AI Travel Assistant
+                 │
+          ┌──────┴──────┐
+          ▼             ▼
+     Local Tools     Web Search
+          │             │
+          ▼             ▼
+     Trip Data       Live Web
+```
 
-```
-Client ──> Web controllers ──> Application services ──> Ports ──> Adapters
-                                    │                    │           │
-                                    │                    └──> Open-Meteo (weather/geocoding)
-                                    │                    └──> OpenTripMap (places)
-                                    ▼
-                            Redis cache layer
-                              (per-cache TTL)
-```
+## Technology Stack
+
+- Java 25
+- Spring Boot 4.1
+- Spring Data JPA
+- Hibernate
+- Spring AI
+- Groq
+- PostgreSQL
+- Redis
+- Docker
+- Maven
+- REST APIs
+- Git / GitHub
+- Postman
 
 ## Project Structure
 
-```
-VoyageOps/
-├── app/                      Spring Boot application
-│   ├── Dockerfile            Multi-stage build (Maven → JRE)
-│   ├── pom.xml
-│   └── src/
-│       ├── main/java/com/voyageops/app/
-│       │   ├── config/       Cache, resilience, scheduling configuration
-│       │   ├── common/       Exceptions, ProblemDetail handling, web helpers
-│       │   ├── trip/         Trips, destinations, activities
-│       │   ├── user/         Users, members, roles, invitations
-│       │   ├── expense/      Expenses, budget summary
-│       │   ├── weather/      Weather forecast + geocoding (hexagonal)
-│       │   ├── places/       Nearby points of interest (hexagonal)
-│       │   └── jobs/         Scheduled maintenance & prewarm jobs
-│       ├── main/resources/db/migration/   Flyway schema
-│       └── test/             Unit tests per feature
-└── compose.yaml              PostgreSQL, Redis, app
+```text
+src/main/java/com/voyageops/app
+│
+├── ai
+│   ├── application
+│   ├── tool
+│   ├── web
+│   └── websearch
+│
+├── trip
+├── expense
+├── user
+├── config
+└── common
 ```
 
-## Quickstart (Docker Compose)
+The AI web-search implementation is intentionally kept under:
+
+```text
+ai/websearch
+```
+
+rather than introducing unnecessary subpackages.
+
+## AI Request Flow
+
+For a question involving stored trip information:
+
+```text
+User Question
+     ↓
+Travel Assistant
+     ↓
+LLM determines required tool
+     ↓
+VoyageOps Tool
+     ↓
+Application Service
+     ↓
+PostgreSQL / Redis
+     ↓
+Tool Result
+     ↓
+LLM
+     ↓
+Natural Language Response
+```
+
+For current travel information:
+
+```text
+User Question
+     ↓
+Travel Assistant
+     ↓
+web_search tool
+     ↓
+Web Search
+     ↓
+Current Web Information
+     ↓
+LLM
+     ↓
+Contextual Response
+```
+
+## Example Queries
+
+The assistant can handle questions such as:
+
+```text
+What is my current trip budget?
+
+How much have I spent so far?
+
+What activities have I planned?
+
+What are some places I can visit near my destination?
+
+What is the current weather there?
+
+How does my planned itinerary look?
+```
+
+The assistant can combine multiple sources when required.
+
+For example:
+
+```text
+"How is my Goa trip looking considering my budget,
+planned activities and current weather?"
+```
+
+can require both application-level tool calls and web research.
+
+## Running Locally
+
+### Prerequisites
+
+- Java 25
+- Maven
+- PostgreSQL
+- Redis
+- Docker
+- Groq API key
+
+### Environment Variables
+
+Configure the required environment variables before starting the application.
+
+```text
+GROQ_API_KEY=<your-api-key>
+```
+
+Database and Redis configuration should be supplied through the application's configuration.
+
+### Run
 
 ```bash
-docker compose up -d --build
-```
-
-This starts PostgreSQL, Redis, and the API. The app is then reachable at
-[http://localhost:8080](http://localhost:8080):
-
-- Health: `http://localhost:8080/actuator/health`
-- API docs: `http://localhost:8080/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
-
-Optional — enable places discovery (OpenTripMap requires a free key):
-
-```bash
-INTEGRATION_OPENTRIPMAP_API_KEY=your-key docker compose up -d --build
-```
-
-## Local Development
-
-Requirements: JDK 25, Docker (for PostgreSQL + Redis).
-
-```bash
-# 1. Start infrastructure only
-docker compose up -d postgres redis
-
-# 2. Run the application
-cd app
 ./mvnw spring-boot:run
 ```
 
-PostgreSQL is exposed on port `5433` (to avoid clashing with a local install),
-Redis on `6379`.
-
-## Configuration
-
-All values have sensible defaults and are overridable via environment
-variables.
-
-| Variable                         | Default                                          | Description                              |
-| -------------------------------- | ------------------------------------------------ | ---------------------------------------- |
-| `DB_URL`                         | `jdbc:postgresql://localhost:5433/voyageops`     | JDBC URL                                 |
-| `DB_USERNAME` / `DB_PASSWORD`    | `voyageops` / `voyageops`                        | Database credentials                     |
-| `REDIS_HOST` / `REDIS_PORT`      | `localhost` / `6379`                             | Redis connection                         |
-| `SERVER_PORT`                    | `8080`                                           | HTTP port                                |
-| `INTEGRATION_OPENTRIPMAP_API_KEY`| *(empty)*                                        | OpenTripMap key; without it the places endpoint returns `503` |
-
-## Authentication
-
-A real identity provider is out of scope. The API uses an `X-User-Id` request
-header (a UUID) as the current-user seam:
-
-- missing header → `401 Unauthorized`
-- user is not a member of the trip → `403 Access Denied`
-- unknown user UUID → `404`
-
-## API Overview
-
-### Trips
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET | `/trips` | List trips (paginated) |
-| POST | `/trips` | Create a trip (owner is seeded as OWNER member) |
-| GET | `/trips/{id}` | Trip detail (cached) |
-| PUT | `/trips/{id}` | Update trip / transition status (evicts caches) |
-| DELETE | `/trips/{id}` | Delete trip |
-
-### Destinations & activities
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET/POST | `/trips/{tripId}/destinations` | List / add destinations |
-| PUT/DELETE | `/destinations/{id}` | Update / delete destination (evicts weather + places) |
-| GET/POST | `/trips/{tripId}/activities` | List / add activities |
-| PUT/DELETE | `/activities/{id}` | Update / delete activity |
-
-### Collaboration
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET/POST | `/trips/{tripId}/members` | List / add members |
-| PATCH | `/trips/{tripId}/members/{userId}` | Change role (owner-only) |
-| DELETE | `/trips/{tripId}/members/{userId}` | Remove member (owner-only) |
-| POST | `/trips/{tripId}/invitations` | Invite by email (48h token) |
-| POST | `/invitations/{token}/accept` | Accept invitation |
-| GET | `/users` | List users (cached) |
-
-### Expenses
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET/POST | `/trips/{tripId}/expenses` | List (paginated) / add |
-| GET | `/trips/{tripId}/expenses/summary` | Budget summary (spent, remaining, count) |
-| GET/PUT/DELETE | `/trips/{tripId}/expenses/{expenseId}` | Detail / update / delete |
-
-### Integrations
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| GET | `/trips/{tripId}/weather` | Daily forecast for the trip window (cached 3h) |
-| GET | `/trips/{tripId}/places?radiusMeters=5000` | Nearby points of interest (cached 24h, requires API key) |
-
-## Caching
-
-| Cache | TTL | Evicted on |
-| ----- | --- | ---------- |
-| `trip` | 10 min | trip update/delete |
-| `trip-destinations` | 1 h | destination write |
-| `trip-activities` | 1 h | activity write |
-| `expense-summary` | 5 min | expense write |
-| `users` | 30 min | user write |
-| `weather` | 3 h | trip/destination write |
-| `places` | 24 h | trip/destination write |
-
-A scheduled job prewarms the `weather` cache hourly for trips starting within
-the next seven days, so common requests rarely hit the upstream API cold.
-
-## Testing
+or:
 
 ```bash
-cd app
-./mvnw test
+mvn spring-boot:run
 ```
 
-The suite uses JUnit 5 + Mockito + AssertJ (no Spring context / containers),
-covering domain policies, service behavior, cache/eviction contracts, and
-scheduled jobs.
+## Testing APIs
 
-## Roadmap (Phase 2, not yet implemented)
+REST APIs can be tested using Postman.
 
-- Spring AI assistant for itinerary suggestions
-- OAuth2 / Spring Security identity
-- Testcontainers integration tests + CI (GitHub Actions)
+Typical operations include:
+
+```text
+Trips
+Destinations
+Activities
+Expenses
+Budget
+AI Assistant
+```
+
+## Engineering Focus
+
+VoyageOps was designed to demonstrate backend engineering rather than simply CRUD functionality.
+
+Key engineering areas include:
+
+- Layered/modular backend architecture
+- REST API design
+- Relational data modeling
+- JPA/Hibernate
+- Transaction boundaries
+- Authorization-aware service operations
+- Redis caching
+- Cache invalidation
+- External information retrieval
+- AI tool calling
+- AI conversation context
+- Separation of application data from model knowledge
+- Dockerized development environment
+
+## Future Scope
+
+Potential extensions include:
+
+- OAuth2 login with Google/GitHub
+- More specialized AI travel tools
+- Automated itinerary optimization
+- Collaborative real-time trip updates
+- Advanced travel recommendation workflows
+- Production deployment and observability
